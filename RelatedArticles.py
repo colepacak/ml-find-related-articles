@@ -9,13 +9,16 @@ class tfidf:
 
     # instance props:
     # df_articles
-    # tfidf_matrix
+    # tfidf_matrix - document/term matrix
+    # feature_names - vector of terms, order matches tfidf_matrix
 
     def __init__(self, df_articles):
         self.df_articles = df_articles
 
         self.createTfidfMatrix()
         self.getRelatedArticles()
+        self.getOrderedTerms()
+
         print self.df_articles
 
     def getStems(self, text):
@@ -35,12 +38,13 @@ class tfidf:
         return stems
 
     def createTfidfMatrix(self):
-        tfidf_vectorizer = TfidfVectorizer(max_df=1.0, max_features=200000,
-                                         min_df=0.0, stop_words='english',
-                                         use_idf=True, tokenizer=self.getStems, ngram_range=(1,1))
+        tfidf_vectorizer = TfidfVectorizer(max_df=0.8, max_features=200000,
+                                         min_df=0.2, stop_words='english',
+                                         use_idf=True, tokenizer=self.getStems, ngram_range=(1,3))
         article_bodies = self.df_articles['body']
         tfidf_matrix_sparse = tfidf_vectorizer.fit_transform(article_bodies)
         self.tfidf_matrix = tfidf_matrix_sparse.toarray()
+        self.feature_names = tfidf_vectorizer.get_feature_names()
 
     def getRelatedArticles(self):
         self.df_articles['related_articles'] = self.df_articles.apply(self.getRelatedArticlesByRow, axis=1)
@@ -59,3 +63,13 @@ class tfidf:
         df_distances = df_distances.drop([subject_id])
         # Return a sorted list of of article indices for the current row.
         return df_distances.sort_values(by=['distance']).index.values.tolist()
+
+    def getOrderedTerms(self):
+        self.df_articles['ordered_terms'] = self.df_articles.apply(self.getOrderedTermsByRow, axis=1)
+
+    def getOrderedTermsByRow(self, row):
+        # Get location index of current row.
+        index = self.df_articles.index.get_loc(row.name)
+        # Sort - in descending order - the terms for the current row.
+        ordered_term_indices = np.argsort(self.tfidf_matrix[index,:])[::-1][:5]
+        return map(lambda x: self.feature_names[x], ordered_term_indices)
