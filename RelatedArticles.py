@@ -19,7 +19,7 @@ class tfidf:
         self.getRelatedArticles()
         self.getOrderedTerms()
 
-        print self.df_articles
+        print(self.df_articles)
 
     def getStems(self, text):
         stopwords = nltk.corpus.stopwords.words('english')
@@ -72,4 +72,5 @@ class tfidf:
         index = self.df_articles.index.get_loc(row.name)
         # Sort - in descending order - the terms for the current row.
         ordered_term_indices = np.argsort(self.tfidf_matrix[index,:])[::-1][:5]
-        return map(lambda x: self.feature_names[x], ordered_term_indices)
+        result = list(map(lambda x: self.feature_names[x], ordered_term_indices))
+        return result
